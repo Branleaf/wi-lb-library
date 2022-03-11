@@ -2,6 +2,8 @@ import PySimpleGUI as sg
 import json, requests, datetime, os
 from transformers import GPT2TokenizerFast
 
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
 # layouts
 title_text = ("_ 20")
 listbox_text = ("_ 12")
@@ -53,7 +55,7 @@ extras_layout = [[sg.Text("Extras", font = title_text, expand_x = True)],
 export_layout = [[sg.Text("Export", font = title_text)],
 [sg.Button("NAI .lorebook", k = "-EXPORTLB-")],
 [sg.Button("AID .json", k = "-AIDJSON-")],
-[sg.Button("Direct to AID", k = "-AIDAPI-")],
+[sg.Button("Direct to AID", k = "-AIDAPI-", disabled = True)],
 [sg.Button("Save to Library", k = "-SAVEENTRY-", expand_x = True)]]
 
 details_layout = [[sg.Text("Details", font = title_text, expand_x = True, justification = "center")],
@@ -62,7 +64,7 @@ details_layout = [[sg.Text("Details", font = title_text, expand_x = True, justif
 [sg.Text("Keys (Seperate with commas)")],
 [sg.Input("", k = "-KEYS-", expand_x = True)],
 [sg.Text("Entry - 0 tokens", k = "-TKNCOUNT-")],
-[sg.Multiline("", k = "-ENTRY-", expand_x = True, expand_y = True)],
+[sg.Multiline("", k = "-ENTRY-", enable_events = True, expand_x = True, expand_y = True)],
 [sg.Column(extras_layout, element_justification = "left", expand_x = True, k = "-META-"), sg.Column(export_layout, element_justification = "right", expand_x = True)]]
 
 main_layout = [[sg.Column(folders_layout, expand_x = True, expand_y = True, k = "-FOLDERS-"), sg.Column(entries_layout, expand_x = True, expand_y = True, k = "-ENTRIES-"), sg.Column(details_layout, expand_x = True, expand_y = True, k = "-DETAILS-")]]
@@ -78,6 +80,13 @@ def keys_to_string(keys:list):
 def string_to_keys(string:str):
     keys = string.split(",")
     return keys
+
+def count_tokens(text:str):
+    # save overhead when counting tokens of blank entries
+    if text:
+        return len(tokenizer.encode(text))
+    else:
+        return 0
 
 # library functions
 def load_library():
@@ -310,6 +319,32 @@ def add_folder_window():
     add_win = sg.Window("Add Folder", add_folder_layout, modal = True)
     return add_win
 
+def nai_settings_window():
+    # set layout, make window, return
+    activation_layout = [[sg.Checkbox("Enabled", k = "-A_ENABLED-")],
+    [sg.Checkbox("Force Activation", k = "-A_FORCEACTIVE-")],
+    [sg.Checkbox("Key-Relative Insertion", k = "-A_KEYRELATIVE-")],
+    [sg.Checkbox("Cascading Activation", k = "-A_CASCADING-")],
+    [sg.Text("Search Range"), sg.Spin([i for i in range(1, 2049)], 1000, k = "-A_SEARCHRANGE-")]]
+    trimming_layout = [[sg.Text("Maximum Trim Type"), sg.Combo(["sentence", "newline", "token"], default_value = "sentence", readonly = True, k = "-T_MAXTRIM-")],
+    [sg.Text("Trim Direction"), sg.Combo(["trimTop", "trimBottom", "doNotTrim"], default_value = "trimBottom", readonly = True, k = "-T_TRIMDIR-")]]
+    left_side_layout = [[sg.Frame("Activation", activation_layout, expand_x = True, element_justification = "right")],
+    [sg.Frame("Trimming", trimming_layout, expand_x = True, expand_y = True, element_justification = "right")]]
+    insertion_layout = [[sg.Text("Prefix"), sg.Input("", expand_x = True, k = "-I_PREFIX-")],
+    [sg.Text("Suffix"), sg.Input("", expand_x = True, k = "-I_SUFFIX-")],
+    [sg.Text("Token Budget"), sg.Spin([i for i in range(0, 2049)], 2048, k = "-I_TOKENBUDGET-")],
+    [sg.Text("Reserved Tokens"), sg.Spin([i for i in range(0, 2049)], 0, k = "-I_RESERVEDTOKENS-")],
+    [sg.Text("Insertion Order"), sg.Spin([i for i in range(-1000, 1000)], 400, k = "-I_INSERTIONORDER-")],
+    [sg.Text("Insertion Position"), sg.Spin([i for i in range(-1000, 1000)], -1, k = "-I_INSERTIONPOSITION-")],
+    [sg.Text("Insertion Type"), sg.Combo(["sentence", "newline", "token"], default_value = "newline", readonly = True, k = "-I_INSERTIONTYPE-")]]
+    lore_bias_layout = [[sg.Text("This entry has - Lorebook biases.", k = "-BIASCOUNT-")]]
+    right_side_layout = [[sg.Frame("Insertion", insertion_layout, expand_x = True, element_justification = "right")],
+    [sg.Frame("LB Biases", lore_bias_layout, expand_x = True, element_justification = "center")]]
+    nai_settings_layout = [[sg.Column(left_side_layout), sg.Column(right_side_layout)],
+    [sg.Button("Save Changes", k = "-SAVENAISETTINGS-", expand_x = True), sg.Button("Discard Changes", k = "-DISCARDNAISETTINGS-", expand_x = True)]]
+    nai_settings_win = sg.Window("NovelAI Settings", nai_settings_layout, element_justification = "center", finalize = True, modal = True)
+    return nai_settings_win
+
 def main_window():
     selected_wi = None
     win = sg.Window("Library", main_layout, resizable = True, size = (1024, 640), finalize = True)
@@ -331,7 +366,7 @@ def main_window():
             win['-DELETEENTRY-'].update(disabled = True)
             win['-EXPORTLB-'].update(disabled = True)
             win['-AIDJSON-'].update(disabled = True)
-            win['-AIDAPI-'].update(disabled = True)
+            #win['-AIDAPI-'].update(disabled = True)
             win['-SAVEENTRY-'].update(disabled = True)
             win['-NAISETTINGS-'].update(disabled = True)
         else:
@@ -342,10 +377,11 @@ def main_window():
             win['-DELETEENTRY-'].update(disabled = False)
             win['-EXPORTLB-'].update(disabled = False)
             win['-AIDJSON-'].update(disabled = False)
-            win['-AIDAPI-'].update(disabled = False)
+            #win['-AIDAPI-'].update(disabled = False)
             win['-SAVEENTRY-'].update(disabled = False)
             win['-NAISETTINGS-'].update(disabled = False)
-        # read, as usual
+        # read, as usual. also, update entrybox token count
+        win['-TKNCOUNT-'].update(value = f"Entry - {count_tokens(win['-ENTRY-'].get())} GPT-2 token(s)")
         event, values = win.read()
         if event == sg.WIN_CLOSED:
             break
@@ -491,6 +527,62 @@ def main_window():
                 export_entries_to_json(indexes, values['-FOLDERLIST-'][0])
             else:
                 sg.popup("Please select entries to export", title = "Error Exporting")
+        # nai settings window
+        elif event == "-NAISETTINGS-":
+            # get info of currently selected entry
+            selected = win['-ENTRYLIST-'].get_indexes()[0]
+            viewed_entry = get_main_entry_details(values['-FOLDERLIST-'][0], selected)
+            # open NAI settings window
+            nai_settings_win = nai_settings_window()
+            # pass in settings from entry. starting with activation...
+            nai_settings_win['-A_ENABLED-'].update(value = viewed_entry["novelai"]["enabled"])
+            nai_settings_win['-A_FORCEACTIVE-'].update(value = viewed_entry["novelai"]["force activation"])
+            nai_settings_win['-A_KEYRELATIVE-'].update(value = viewed_entry["novelai"]["key-relative insertion"])
+            nai_settings_win['-A_CASCADING-'].update(value = viewed_entry["novelai"]["cascading activation"])
+            nai_settings_win['-A_SEARCHRANGE-'].update(value = viewed_entry["novelai"]["search range"])
+            # trimming...
+            nai_settings_win['-T_MAXTRIM-'].update(value = viewed_entry["novelai"]["max trim type"])
+            nai_settings_win['-T_TRIMDIR-'].update(value = viewed_entry["novelai"]["trim direction"])
+            # insertion...
+            nai_settings_win['-I_PREFIX-'].update(value = viewed_entry["novelai"]["prefix"].replace("\n", "\\n"))
+            nai_settings_win['-I_SUFFIX-'].update(value = viewed_entry["novelai"]["suffix"].replace("\n", "\\n"))
+            nai_settings_win['-I_TOKENBUDGET-'].update(value = viewed_entry["novelai"]["token budget"])
+            nai_settings_win['-I_RESERVEDTOKENS-'].update(value = viewed_entry["novelai"]["reserved tokens"])
+            nai_settings_win['-I_INSERTIONORDER-'].update(value = viewed_entry["novelai"]["insertion order"])
+            nai_settings_win['-I_INSERTIONPOSITION-'].update(value = viewed_entry["novelai"]["insertion position"])
+            nai_settings_win['-I_INSERTIONTYPE-'].update(value = viewed_entry["novelai"]["insertion type"])
+            # ... and lorebook bias count.
+            nai_settings_win['-BIASCOUNT-'].update(value = f"This entry has {len(viewed_entry['novelai']['lorebook bias'])} Lorebook biases.")
+            # finally to the event loop
+            while True:
+                _event, _values = nai_settings_win.read()
+                if _event == sg.WIN_CLOSED or _event == "-DISCARDNAISETTINGS-":
+                    break
+                # save all changes... lotsa similar lines. maybe i could lump it into one big viewed_entry['nai'] = {bigdict} at some point
+                elif _event == "-SAVENAISETTINGS-":
+                    # saving activation...
+                    viewed_entry["novelai"]["enabled"] = _values['-A_ENABLED-']
+                    viewed_entry["novelai"]["force activation"] = _values['-A_FORCEACTIVE-']
+                    viewed_entry["novelai"]["key-relative insertion"] = _values['-A_KEYRELATIVE-']
+                    viewed_entry["novelai"]["cascading activation"] = _values['-A_CASCADING-']
+                    viewed_entry["novelai"]["search range"] = _values['-A_SEARCHRANGE-']
+                    # trimming...
+                    viewed_entry["novelai"]["max trim type"] = _values['-T_MAXTRIM-']
+                    viewed_entry["novelai"]["trim direction"] = _values['-T_TRIMDIR-']
+                    # ...and insertion. replace verbatim "\n"s from input box with newline, because that is what people would use
+                    viewed_entry["novelai"]["prefix"] = _values['-I_PREFIX-']
+                    if viewed_entry["novelai"]["prefix"] == "\\n": viewed_entry["novelai"]["prefix"] = "\n"
+                    viewed_entry["novelai"]["suffix"] = _values['-I_SUFFIX-']
+                    if viewed_entry["novelai"]["suffix"] == "\\n": viewed_entry["novelai"]["suffix"] = "\n"
+                    viewed_entry["novelai"]["token budget"] = _values['-I_TOKENBUDGET-']
+                    viewed_entry["novelai"]["reserved tokens"] = _values['-I_RESERVEDTOKENS-']
+                    viewed_entry["novelai"]["insertion order"] =  _values['-I_INSERTIONORDER-']
+                    viewed_entry["novelai"]["insertion position"] =  _values['-I_INSERTIONPOSITION-']
+                    viewed_entry["novelai"]["insertion type"] = _values['-I_INSERTIONTYPE-']
+                    viewed_entry['meta']['date updated'] = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+                    break
+            nai_settings_win.close()
+            win['-ENTRYLIST-'].update(values = get_entry_names(values['-FOLDERLIST-'][0]))
     # save and close when event loop breaks (on window close)
     win.close()
     save_library()
