@@ -1,5 +1,5 @@
 # wi-lb-library
-stores all of your AI Dungeon world info and NovelAI lorebook entries in one place, with the option to import from and export to either file type.
+stores all of your AI Dungeon world info and NovelAI lorebook entries in one place, with the option to import from and export to either file type. made for another latitude hackathon
 ## features
 * ability to import AID worldInfo.json
 * ability to import NAI .lorebook files
