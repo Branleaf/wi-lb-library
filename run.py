@@ -399,17 +399,18 @@ def main_window():
             add_folder_win = add_folder_window()
             # event loop for add window
             while True:
-                event, values = add_folder_win.read()
+                event, _values = add_folder_win.read()
                 # end event loop if window gets closed or user clicks cancel
                 if event == sg.WIN_CLOSED or event == "-CANCELADD-":
                     break
                 elif event == "-ADD-":
                     # add folder if it's got characters that aren't just whitespace
-                    foldername_no_whitespace = values['-FOLDERNAME-'].replace(" ", "")
+                    foldername_no_whitespace = _values['-FOLDERNAME-'].replace(" ", "")
                     if foldername_no_whitespace:
-                        successful_add = add_folder_by_name(values['-FOLDERNAME-'])
+                        successful_add = add_folder_by_name(_values['-FOLDERNAME-'])
                         if successful_add:
-                            win['-FOLDERLIST-'].update(values = list(library.keys()))
+                            win['-FOLDERLIST-'].update(values = list(library.keys()), set_to_index = win["-FOLDERLIST-"].get_indexes()[0])
+                            win['-ENTRYLIST-'].update(values = get_entry_names(values['-FOLDERLIST-'][0]))
                         break
                     else:
                         sg.Popup("Please type a folder name. Folder names cannot consist of just whitespace.", title = "Error adding folder")
