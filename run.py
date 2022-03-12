@@ -120,8 +120,10 @@ def add_folder_by_name(folder_name:str):
     # add folder to library if there isn't already one with the same name
     if folder_name in library:
         sg.Popup("Can't have two folders with the same name", title = "Error adding folder")
+        return False
     else:
         library.update({folder_name:[]})
+        return True
 
 def rename_folder(folder_name:str, new_folder_name:str):
     if new_folder_name in library:
@@ -405,8 +407,9 @@ def main_window():
                     # add folder if it's got characters that aren't just whitespace
                     foldername_no_whitespace = values['-FOLDERNAME-'].replace(" ", "")
                     if foldername_no_whitespace:
-                        add_folder_by_name(values['-FOLDERNAME-'])
-                        win['-FOLDERLIST-'].update(values = list(library.keys()))
+                        successful_add = add_folder_by_name(values['-FOLDERNAME-'])
+                        if successful_add:
+                            win['-FOLDERLIST-'].update(values = list(library.keys()))
                         break
                     else:
                         sg.Popup("Please type a folder name. Folder names cannot consist of just whitespace.", title = "Error adding folder")
