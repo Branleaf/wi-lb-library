@@ -1,5 +1,4 @@
 json
-requests
 PySimpleGUI
 datetime
 os

@@ -1,5 +1,5 @@
 import PySimpleGUI as sg
-import json, requests, datetime, os
+import json, datetime, os
 from transformers import GPT2TokenizerFast
 
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
