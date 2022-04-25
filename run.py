@@ -176,15 +176,15 @@ def import_json_entries_to_folder(filepath:str, folder:str):
         else: # ...otherwise, substitute in the first key
             imported_wi[i]['name'] = json_entries[i]['keys'].split(",")[0]
         # add keys if there are any...
-        if imported_wi[i]['keys']:
+        if json_entries[i]['keys']:
             imported_wi[i]['keys'] = json_entries[i]['keys'].split(",")
         else: # ...otherwise, substitute in the name
-            imported_wi[i]['keys'] = [json_entries[i]['name']]
+            imported_wi[i]['keys'] = [str(json_entries[i]['name'])]
         # add entry as entry if there is one...
         if json_entries[i]['entry']:
             imported_wi[i]['entry'] = json_entries[i]['entry']
         else: # ...otherwise, substitute in the description
-            imported_wi[i]['entry'] = json_entries[i]['description']
+            imported_wi[i]['entry'] = str(json_entries[i]['description'])
         # metadata
         imported_wi[i]['meta']['date created'] = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
         imported_wi[i]['meta']['date updated'] = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
